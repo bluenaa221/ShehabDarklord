@@ -88,7 +88,9 @@ function makeRoute(engine) {
     const allBotIds = engine.getAllBotIds();
     const anyMentioned = engine.isAnyBotMentioned(event, allBotIds);
     if (anyMentioned && !engine.isMentioned(event, botID)) return;
-    const cleanEvent = anyMentioned
+    const hasMentions =
+      event && event.mentions && Object.keys(event.mentions).length > 0;
+    const cleanEvent = hasMentions
       ? engine.stripMentionFromEvent(event, botID)
       : event;
     const entry = engine.accounts.get(account.id);

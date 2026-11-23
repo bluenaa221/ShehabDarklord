@@ -370,7 +370,9 @@ function startMultiAccountEngine() {
 
         if (anyMentioned && !accountsEngine.isMentioned(event, botID)) return;
 
-        const cleanEvent = anyMentioned
+        const hasMentions =
+          event && event.mentions && Object.keys(event.mentions).length > 0;
+        const cleanEvent = hasMentions
           ? accountsEngine.stripMentionFromEvent(event, botID)
           : event;
 
