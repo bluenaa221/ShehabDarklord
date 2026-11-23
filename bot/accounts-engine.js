@@ -190,16 +190,28 @@ function isMentioned(event, botID) {
   return false;
 }
 
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function stripMentionFromEvent(event, botID) {
   if (!event || !event.mentions) return event;
   const mentions = { ...event.mentions };
   let body = String(event.body || "");
   const normalizedBot = normalizeFacebookID(botID);
   for (const [mentionID, tag] of Object.entries(mentions)) {
-    if (normalizeFacebookID(mentionID) === normalizedBot) {
-      if (typeof tag === "string" && tag.trim()) {
-        body = body.replace(tag, " ");
+    if (normalizeFacebookID(mentionID) !== normalizedBot) continue;
+    if (typeof tag === "string" && tag.trim()) {
+      const withAt = tag.startsWith("@") ? tag : `@${tag}`;
+      const withoutAt = tag.startsWith("@") ? tag.slice(1) : tag;
+      for (const variant of [tag, withAt, withoutAt]) {
+        if (!variant) continue;
+        body = body.replace(new RegExp(escapeRegExp(variant), "g"), " ");
       }
+    }
+    const fallbackMatch = body.match(/@\S+/);
+    if (fallbackMatch) {
+      body = body.replace(fallbackMatch[0], " ");
     }
   }
   body = body.replace(/\s+/g, " ").trim();
