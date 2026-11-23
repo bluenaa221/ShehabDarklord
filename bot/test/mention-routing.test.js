@@ -56,16 +56,19 @@ function setupEngine(records, onMessage, { executed = [], sentMessages = [] } = 
     loginFn: fakeLogin,
     contextFactory: () => {
       const ctx = createCommandContext();
-      ctx.loadCommands();
-      for (const name of SPY_COMMANDS) {
-        const cmd = ctx.commands.get(name);
-        if (cmd && typeof cmd.execute === "function") {
-          cmd.execute = (api, event) => {
-            executed.push({ botId: String(api.getCurrentUserID()), name, body: (event.body || "").trim() });
-            return Promise.resolve();
-          };
+      const originalLoad = ctx.loadCommands.bind(ctx);
+      ctx.loadCommands = () => {
+        originalLoad();
+        for (const name of SPY_COMMANDS) {
+          const cmd = ctx.commands.get(name);
+          if (cmd && typeof cmd.execute === "function") {
+            cmd.execute = (api, event) => {
+              executed.push({ botId: String(api.getCurrentUserID()), name, body: (event.body || "").trim() });
+              return Promise.resolve();
+            };
+          }
         }
-      }
+      };
       return ctx;
     },
   });
@@ -154,10 +157,11 @@ test("mention routing is generic: 4 different commands with real @ mentions exec
       { id: "100", name: "بوت أ", enabled: true },
       { id: "200", name: "بوت ب", enabled: true },
     ],
-    null,
+    (account, event) => routeRef(account, event),
     { executed, sentMessages },
   );
-  const route = makeRoute(engine);
+  let routeRef = () => {};
+  routeRef = makeRoute(engine);
 
   await engine.startAll();
   await settle();
@@ -201,10 +205,11 @@ test("real @ mention targeting bot 200 — only bot 200 executes, bot 100 silent
       { id: "100", name: "بوت أ", enabled: true },
       { id: "200", name: "بوت ب", enabled: true },
     ],
-    null,
+    (account, event) => routeRef(account, event),
     { executed, sentMessages },
   );
-  const route = makeRoute(engine);
+  let routeRef = () => {};
+  routeRef = makeRoute(engine);
 
   await engine.startAll();
   await settle();
@@ -234,10 +239,11 @@ test("command without mention still reaches all bots (collective behavior preser
       { id: "100", name: "بوت أ", enabled: true },
       { id: "200", name: "بوت ب", enabled: true },
     ],
-    null,
+    (account, event) => routeRef(account, event),
     { executed, sentMessages },
   );
-  const route = makeRoute(engine);
+  let routeRef = () => {};
+  routeRef = makeRoute(engine);
 
   await engine.startAll();
   await settle();
@@ -304,10 +310,11 @@ test("mentioning a non-bot user does not block all bots — all execute", async 
       { id: "100", name: "بوت أ", enabled: true },
       { id: "200", name: "بوت ب", enabled: true },
     ],
-    null,
+    (account, event) => routeRef(account, event),
     { executed, sentMessages },
   );
-  const route = makeRoute(engine);
+  let routeRef = () => {};
+  routeRef = makeRoute(engine);
 
   await engine.startAll();
   await settle();
@@ -375,10 +382,11 @@ test("mention with fbid: prefix normalizes correctly — only mentioned bot exec
       { id: "100", name: "بوت أ", enabled: true },
       { id: "200", name: "بوت ب", enabled: true },
     ],
-    null,
+    (account, event) => routeRef(account, event),
     { executed, sentMessages },
   );
-  const route = makeRoute(engine);
+  let routeRef = () => {};
+  routeRef = makeRoute(engine);
 
   await engine.startAll();
   await settle();

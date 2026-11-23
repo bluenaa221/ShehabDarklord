@@ -199,21 +199,34 @@ function stripMentionFromEvent(event, botID) {
   const mentions = { ...event.mentions };
   let body = String(event.body || "");
   const normalizedBot = normalizeFacebookID(botID);
-  for (const [mentionID, tag] of Object.entries(mentions)) {
-    if (normalizeFacebookID(mentionID) !== normalizedBot) continue;
+  const entries = Object.entries(mentions);
+  const botEntries = entries.filter(([mentionID]) => normalizeFacebookID(mentionID) === normalizedBot);
+
+  for (const [, tag] of botEntries) {
     if (typeof tag === "string" && tag.trim()) {
       const withAt = tag.startsWith("@") ? tag : `@${tag}`;
       const withoutAt = tag.startsWith("@") ? tag.slice(1) : tag;
-      for (const variant of [tag, withAt, withoutAt]) {
+      for (const variant of [withAt, withoutAt, tag]) {
         if (!variant) continue;
         body = body.replace(new RegExp(escapeRegExp(variant), "g"), " ");
       }
     }
+  }
+  if (botEntries.length > 0) {
     const fallbackMatch = body.match(/@\S+/);
     if (fallbackMatch) {
       body = body.replace(fallbackMatch[0], " ");
     }
   }
+
+  for (const [mentionID, tag] of entries) {
+    if (normalizeFacebookID(mentionID) === normalizedBot) continue;
+    if (typeof tag === "string" && tag.trim()) {
+      const withAt = tag.startsWith("@") ? tag : `@${tag}`;
+      body = body.replace(new RegExp(escapeRegExp(withAt), "g"), " ");
+    }
+  }
+
   body = body.replace(/\s+/g, " ").trim();
   return { ...event, body, mentions };
 }
